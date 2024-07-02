@@ -27345,17 +27345,27 @@ const _main = (args) => __awaiter(void 0, void 0, void 0, function* () {
         throw new Error(`Instance not found.`);
     }
     yield axios_1.default.delete(`/organizations/${authCheck.data.slug}/instances/${oInstance.id}`);
-    const timeoutDate = new Date((new Date()).getTime() + (args.timeout * 1000));
-    core.debug(`Timeout date: ${timeoutDate.toString()}`);
-    while (instances.data.find(o => o.id === oInstance.id)) {
-        console.log(`Waiting for instance to shutdown...`);
-        yield (0, promises_1.setTimeout)(60000);
-        if ((new Date()).getTime() < timeoutDate.getTime()) {
-            instances = yield axios_1.default.get(`/organizations/${authCheck.data.slug}/instances`);
+    if (args.wait) {
+        const timeoutDate = new Date((new Date()).getTime() + (args.timeout * 1000));
+        core.debug(`Timeout date: ${timeoutDate.toString()}`);
+        while (instances.data.find(o => o.id === oInstance.id)) {
+            console.log(`Waiting for instance to shutdown...`);
+            yield (0, promises_1.setTimeout)(60000);
+            if ((new Date()).getTime() < timeoutDate.getTime()) {
+                instances = yield axios_1.default.get(`/organizations/${authCheck.data.slug}/instances`);
+            }
+            else {
+                throw new Error(`Waiting for instance shutdown timed out after ${args.timeout} seconds.`);
+            }
         }
-        else {
-            throw new Error(`Waiting for instance shutdown timed out after ${args.timeout} seconds.`);
-        }
+        return {
+            waited: true
+        };
+    }
+    else {
+        return {
+            waited: false
+        };
     }
 });
 var timeout;
@@ -27369,9 +27379,15 @@ _main({
     email: core.getInput('email'),
     password: core.getInput('password'),
     instanceName: core.getInput('instanceName'),
+    wait: core.getBooleanInput('wait'),
     timeout
-}).then(() => {
-    console.log(`Instance shutdown success.`);
+}).then((response) => {
+    if (response.waited) {
+        console.log(`Instance shutdown success.`);
+    }
+    else {
+        console.log(`Instance shutting down.`);
+    }
 }).catch(e => {
     var sError;
     try {

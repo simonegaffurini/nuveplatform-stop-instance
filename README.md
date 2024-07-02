@@ -18,7 +18,11 @@ Stop [Nuve Platform](https://nuveplatform.com) instance.
     # Name of the instance to stop
     instanceName: ''
 
-    # Shutdown imeout (in seconds)
+    # Wait for shutdown
+    # Default: true
+    wait: true
+
+    # Shutdown timeout (in seconds), works with wait set to true
     # Default: 600 (10 minutes)
     timeout: 600
 

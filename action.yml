@@ -14,8 +14,12 @@ inputs:
   instanceName:
     description: Name of the instance to shutdown
     required: true
+  wait:
+    description: Wait for shutdown
+    required: false
+    default: true
   timeout:
-    description: Shutdown timeout
+    description: Shutdown timeout (only if wait is set to true)
     required: false
     default: 600
 runs:

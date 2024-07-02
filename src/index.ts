@@ -8,7 +8,12 @@ type ActionArguments = {
     email: string,
     password: string,
     instanceName: string,
+    wait: boolean,
     timeout: number
+}
+
+type ActionResponse = {
+    waited: boolean
 }
 
 type LoginResponse = {
@@ -76,7 +81,7 @@ const _buildAxios = () => {
     axios.defaults.baseURL = `https://app.nuveplatform.com/api`;
 }
 
-const _main = async (args: ActionArguments): Promise<void> => {
+const _main = async (args: ActionArguments): Promise<ActionResponse> => {
     _buildAxios();
     const authResponse = await axios.post<LoginResponse>(`/auth/login`, {
         email: args.email,
@@ -96,16 +101,25 @@ const _main = async (args: ActionArguments): Promise<void> => {
         throw new Error(`Instance not found.`);
     }
     await axios.delete<InstanceResponse[]>(`/organizations/${authCheck.data.slug}/instances/${oInstance.id}`);
-    const timeoutDate = new Date((new Date()).getTime() + (args.timeout * 1000));
-    core.debug(`Timeout date: ${timeoutDate.toString()}`);
-    while(instances.data.find(o => o.id === oInstance.id)){
-        console.log(`Waiting for instance to shutdown...`);
-        await setTimeout(60000);
-        if((new Date()).getTime() < timeoutDate.getTime()){
-            instances = await axios.get<InstanceResponse[]>(`/organizations/${authCheck.data.slug}/instances`);
-        }else{
-            throw new Error(`Waiting for instance shutdown timed out after ${args.timeout} seconds.`);
+    if(args.wait){
+        const timeoutDate = new Date((new Date()).getTime() + (args.timeout * 1000));
+        core.debug(`Timeout date: ${timeoutDate.toString()}`);
+        while(instances.data.find(o => o.id === oInstance.id)){
+            console.log(`Waiting for instance to shutdown...`);
+            await setTimeout(60000);
+            if((new Date()).getTime() < timeoutDate.getTime()){
+                instances = await axios.get<InstanceResponse[]>(`/organizations/${authCheck.data.slug}/instances`);
+            }else{
+                throw new Error(`Waiting for instance shutdown timed out after ${args.timeout} seconds.`);
+            }
         }
+        return {
+            waited: true
+        };
+    }else{
+        return {
+            waited: false
+        };
     }
 }
 
@@ -120,9 +134,14 @@ _main({
     email: core.getInput('email'),
     password: core.getInput('password'),
     instanceName: core.getInput('instanceName'),
+    wait: core.getBooleanInput('wait'),
     timeout
-}).then(() => {
-    console.log(`Instance shutdown success.`);
+}).then((response) => {
+    if(response.waited){
+        console.log(`Instance shutdown success.`);
+    }else{
+        console.log(`Instance shutting down.`);
+    }
 }).catch(e => {
     var sError: string;
     try {
