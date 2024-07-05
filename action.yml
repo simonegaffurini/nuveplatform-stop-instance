@@ -3,7 +3,7 @@ description: 'Stop a Nuve Platform instance'
 author: 'Simone Gaffurini'
 branding:
   icon: 'power'
-  color: 'green'
+  color: 'red'
 inputs:
   email:
     description: Nuve Platform email
